@@ -7,6 +7,7 @@ const { createDatabase } = require("../../src/db/connection");
 const coursesService = require("../../src/services/courses");
 
 async function startTestApp(t) {
+  fs.mkdirSync(path.join(__dirname, "../../work"), { recursive: true });
   const directory = fs.mkdtempSync(path.join(__dirname, "../../work/nova-courses-test-"));
   const db = createDatabase(path.join(directory, "test.db"));
   const app = createApp({ db });

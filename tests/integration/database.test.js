@@ -9,6 +9,7 @@ const temporaryDirectories = [];
 const testDatabases = [];
 
 function createTestDatabase() {
+  fs.mkdirSync(path.join(__dirname, "../../work"), { recursive: true });
   const directory = fs.mkdtempSync(path.join(__dirname, "../../work/nova-campus-test-"));
   temporaryDirectories.push(directory);
   const db = createDatabase(path.join(directory, "test.db"));
