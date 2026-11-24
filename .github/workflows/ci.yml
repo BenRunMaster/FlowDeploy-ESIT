@@ -31,11 +31,6 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
-      # Workaround temporal (incidencia D-01): la suite crea directorios
-      # temporales en work/, excluido por .gitignore, y falla en clon limpio.
-      - name: Preparar directorio de trabajo
-        run: mkdir -p work
-
       - name: Lint
         run: npm run lint
 
