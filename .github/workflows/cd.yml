@@ -2,65 +2,20 @@ name: CD — Despliegue en Render
 
 on:
   workflow_dispatch:
-    inputs:
-      dry_run:
-        description: "Simular sin invocar el deploy hook"
-        type: boolean
-        default: true
-  push:
-    branches: [main]
-
-concurrency:
-  group: cd-${{ github.ref }}
-  cancel-in-progress: false
 
 permissions:
   contents: read
 
 jobs:
-  deploy:
-    name: Despliegue y verificación de salud
+  healthcheck:
+    name: "QA CD-06 — Servicio no disponible"
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 10
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Verificar disponibilidad del hook
-        id: hook
-        env:
-          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
-        run: |
-          if [ -z "$HOOK" ]; then
-            echo "presente=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::RENDER_DEPLOY_HOOK_URL no está configurado. El despliegue real no puede ejecutarse."
-          else
-            echo "presente=true" >> "$GITHUB_OUTPUT"
-            echo "Secreto presente."
-          fi
-
-      - name: Disparar despliegue
-        if: ${{ github.event_name == 'push' || inputs.dry_run == false }}
-        env:
-          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
-        run: |
-          if [ -z "$HOOK" ]; then
-            echo "::error::Despliegue no ejecutado: el secreto RENDER_DEPLOY_HOOK_URL no está configurado."
-            exit 1
-          fi
-          code=$(curl -s -o /tmp/hook.out -w "%{http_code}" -X POST "$HOOK" --max-time 30) || code=000
-          echo "Render respondió: $code"
-          cat /tmp/hook.out
-          case "$code" in
-            200|201|202) echo "Despliegue aceptado." ;;
-            *) echo "::error::Render rechazó la solicitud ($code)"; exit 1 ;;
-          esac
-
       - name: Verificar salud del servicio
-        if: ${{ github.event_name == 'push' || inputs.dry_run == false }}
         env:
-          URL: ${{ secrets.HEALTHCHECK_URL }}
+          URL: http://127.0.0.1:1
         run: |
           if [ -z "$URL" ]; then
             echo "::error::HEALTHCHECK_URL no está configurado."
@@ -82,14 +37,11 @@ jobs:
       - name: Resumen
         if: always()
         run: |
-          SIM="${{ inputs.dry_run }}"
-          if [ -z "$SIM" ]; then SIM="no aplica (push)"; fi
           {
-            echo "### CD — Render"
-            echo "- Commit del run: \`${{ github.sha }}\`"
+            echo "### QA CD-06 — Servicio no disponible"
+            echo "- Commit: \`${{ github.sha }}\`"
             echo "- Rama: \`${{ github.ref_name }}\`"
-            echo "- Disparo: ${{ github.event_name }}"
-            echo "- Simulación: $SIM"
-            echo "- Secreto del hook: ${{ steps.hook.outputs.presente }}"
-            echo "- Resultado: ${{ job.status }}"
+            echo "- URL de prueba: http://127.0.0.1:1/health"
+            echo "- Deploy Hook: no utilizado"
+            echo "- Resultado del job: ${{ job.status }}"
           } >> "$GITHUB_STEP_SUMMARY"
